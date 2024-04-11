@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>To-Do List</h1>
+        <div class="input-group" id="input-group">
+            <input type="text" id="taskInput" placeholder="Add a new task">
+            <button id="addButton"><span>Add</span></button>
+        </div>
+        <ul id="taskList">
+            <!-- Tasks will be added here dynamically -->
+        </ul>
+        <div class="progress" id="progress">
+            <span id="completedTasks">0</span>/<span id="totalTasks">0</span> tasks completed
+        </div>
+        <div class="button-group" id="button-group">
+            <button id="saveButton"><span>Save</span></button>
+            <button id="clearButton"><span>Clear All</span></button>
+            <button id="toggleModeButton" onclick="toggleMode()"><span>Toggle Mode</span></button>
+        </div>
+    </div>
+    <script>
+
+        // Function to toggle between light and dark modes
+function toggleMode() {
+    document.body.classList.toggle("dark-mode");
+    
+    // Save the mode preference in localStorage
+    var mode = document.body.classList.contains("dark-mode") ? "dark" : "light";
+    localStorage.setItem("mode", mode);
+}
+
+// Function to load mode preference from localStorage
+function loadMode() {
+    var mode = localStorage.getItem("mode");
+    if (mode === "dark") {
+        document.body.classList.add("dark-mode");
+    }
+}
+
+// Call loadMode when the page loads
+window.onload = function() {
+    loadMode();
+};
+
+        // Function to add a task
+        function addTask() {
+            var input = document.getElementById("taskInput").value;
+            if (input === "") {
+                alert("Please enter a task!");
+                return;
+            }
+
+            var ul = document.getElementById("taskList");
+            var li = document.createElement("li");
+            li.classList.add("fade-in");
+
+            var checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.onclick = function() {
+                if (this.checked) {
+                    completedTasks++;
+                } else {
+                    completedTasks--;
+                }
+                updateProgress();
+                updateTaskList(); // Update task list when checkbox state changes
+            };
+            li.appendChild(checkbox);
+
+            var span = document.createElement("span");
+            span.textContent = input;
+            span.classList.add("editable");
+            span.setAttribute("contenteditable", true); // Enable editing
+            span.addEventListener("input", function() {
+                // Update the task in localStorage when edited
+                updateTask(this.parentElement);
+            });
+            li.appendChild(span);
+
+            var deleteButton = document.createElement("button");
+            deleteButton.appendChild(document.createTextNode("❌"));
+            deleteButton.onclick = function() {
+                if (checkbox.checked) {
+                    completedTasks--;
+                }
+                totalTasks--;
+                updateProgress();
+                li.classList.remove("fade-in");
+                li.classList.add("fade-out");
+                setTimeout(function() {
+                    li.remove();
+                    updateTaskList();
+                }, 300);
+            };
+            li.appendChild(deleteButton);
+
+            ul.appendChild(li);
+
+            totalTasks++;
+            updateProgress();
+
+            document.getElementById("taskInput").value = "";
+        }
+
+        // Function to update progress
+        function updateProgress() {
+            document.getElementById("completedTasks").textContent = completedTasks;
+            document.getElementById("totalTasks").textContent = totalTasks;
+        }
+
+        // Function to save tasks to localStorage
+        function saveTasks() {
+            updateTaskList();
+            var tasks = [];
+            var taskElements = document.querySelectorAll("#taskList li span.editable");
+            taskElements.forEach(function(taskElement) {
+                tasks.push({
+                    content: taskElement.textContent,
+                    completed: taskElement.parentElement.querySelector("input[type='checkbox']").checked
+                });
+            });
+            localStorage.setItem("tasks", JSON.stringify(tasks));
+        }
+
+        // Function to load tasks from localStorage
+        function loadTasks() {
+            var tasks = localStorage.getItem("tasks");
+            if (tasks) {
+                tasks = JSON.parse(tasks);
+                tasks.forEach(function(task) {
+                    addTaskFromStorage(task);
+                });
+            }
+        }
+
+        // Function to clear tasks and localStorage
+        function clearTasks() {
+            var listItems = document.querySelectorAll("#taskList li");
+            listItems.forEach(function(li) {
+                li.classList.remove("fade-in");
+                li.classList.add("fade-out");
+                setTimeout(function() {
+                    li.remove();
+                    updateTaskList();
+                }, 300);
+            });
+            totalTasks = 0;
+            completedTasks = 0;
+            updateProgress();
+            localStorage.removeItem("tasks");
+        }
+
+        // Call loadTasks when the page loads
+        window.onload = function() {
+            loadTasks();
+        };
+
+        // Add an event listener to the "Add" button
+        document.getElementById("addButton").addEventListener("click", addTask);
+
+        // Add an event listener to the "Save" button
+        document.getElementById("saveButton").addEventListener("click", function() {
+            saveTasks();
+            alert("Tasks saved successfully!");
+        });
+
+        // Add an event listener to the "Clear" button
+        document.getElementById("clearButton").addEventListener("click", clearTasks);
+
+        // Global variables for tracking tasks
+        var totalTasks = 0;
+        var completedTasks = 0;
+
+        // Function to update task list in localStorage
+        function updateTaskList() {
+            var tasks = [];
+            var taskElements = document.querySelectorAll("#taskList li span.editable");
+            taskElements.forEach(function(taskElement) {
+                tasks.push({
+                    content: taskElement.textContent,
+                    completed: taskElement.parentElement.querySelector("input[type='checkbox']").checked
+                });
+            });
+            localStorage.setItem("tasks", JSON.stringify(tasks));
+        }
+
+        // Function to add a task from localStorage
+        function addTaskFromStorage(task) {
+            var ul = document.getElementById("taskList");
+            var li = document.createElement("li");
+            li.classList.add("fade-in");
+
+            var checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.checked = task.completed; // Set checkbox state from localStorage
+            checkbox.onclick = function() {
+                if (this.checked) {
+                    completedTasks++;
+                } else {
+                    completedTasks--;
+                }
+                updateProgress();
+                updateTaskList(); // Update task list when checkbox state changes
+            };
+            li.appendChild(checkbox);
+
+            var span = document.createElement("span");
+            span.textContent = task.content;
+            span.classList.add("editable");
+            span.setAttribute("contenteditable", true); // Enable editing
+            span.addEventListener("input", function() {
+                // Update the task in localStorage when edited
+                updateTask(this.parentElement);
+            });
+            li.appendChild(span);
+
+            var deleteButton = document.createElement("button");
+            deleteButton.appendChild(document.createTextNode("❌"));
+            deleteButton.onclick = function() {
+                if (checkbox.checked) {
+                    completedTasks--;
+                }
+                totalTasks--;
+                updateProgress();
+                li.classList.remove("fade-in");
+                li.classList.add("fade-out");
+                setTimeout(function() {
+                    li.remove();
+                    updateTaskList();
+                }, 300);
+            };
+            li.appendChild(deleteButton);
+
+            ul.appendChild(li);
+
+            totalTasks++;
+            if (task.completed) {
+                completedTasks++;
+            }
+            updateProgress();
+        }
+
+        // Function to update a task in localStorage
+        function updateTask(taskElement) {
+            var index = Array.from(taskElement.parentNode.children).indexOf(taskElement);
+            var tasks = JSON.parse(localStorage.getItem("tasks"));
+            tasks[index].content = taskElement.querySelector("span.editable").textContent;
+            localStorage.setItem("tasks", JSON.stringify(tasks));
+        }
+    </script>
+</body>
+</html>
